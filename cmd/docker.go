@@ -15,9 +15,14 @@ func NewDockerCmd(rootOpts *RootOptions, rootFlags *pflag.FlagSet) *cobra.Comman
 		Use:   "docker",
 		Short: "Build Falco kernel modules and eBPF probes against a docker daemon.",
 		Run: func(c *cobra.Command, args []string) {
+			f := c.Flags()
+			image, err := f.GetString("image")
+			if err != nil {
+				logger.WithError(err).Fatal("exiting")
+			}
 			logrus.WithField("processor", c.Name()).Info("driver building, it will take a few seconds")
 			if !configOptions.DryRun {
-				if err := driverbuilder.NewDockerBuildProcessor(viper.GetInt("timeout"), viper.GetString("proxy")).Start(rootOpts.toBuild()); err != nil {
+				if err := driverbuilder.NewDockerBuildProcessor(viper.GetInt("timeout"), viper.GetString("proxy"), image).Start(rootOpts.toBuild()); err != nil {
 					logger.WithError(err).Fatal("exiting")
 				}
 			}
@@ -25,6 +30,6 @@ func NewDockerCmd(rootOpts *RootOptions, rootFlags *pflag.FlagSet) *cobra.Comman
 	}
 	// Add root flags
 	dockerCmd.PersistentFlags().AddFlagSet(rootFlags)
-
+	dockerCmd.PersistentFlags().StringVarP(&Image, "image", "i", "", "image to use")
 	return dockerCmd
 }

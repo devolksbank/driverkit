@@ -32,13 +32,15 @@ type DockerBuildProcessor struct {
 	clean   bool
 	timeout int
 	proxy   string
+	image   string
 }
 
 // NewDockerBuildProcessor ...
-func NewDockerBuildProcessor(timeout int, proxy string) *DockerBuildProcessor {
+func NewDockerBuildProcessor(timeout int, proxy string, image string) *DockerBuildProcessor {
 	return &DockerBuildProcessor{
 		timeout: timeout,
 		proxy:   proxy,
+		image:   image,
 	}
 }
 
@@ -52,6 +54,12 @@ func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return err
+	}
+
+	image := bp.image
+
+	if len(image) == 0 {
+		image = builderBaseImage
 	}
 
 	// create a builder based on the choosen build type
@@ -95,9 +103,9 @@ func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	ctx := context.Background()
 	ctx = signals.WithStandardSignals(ctx)
 
-	if _, _, err = cli.ImageInspectWithRaw(ctx, builderBaseImage); client.IsErrNotFound(err) {
-		logger.WithField("image", builderBaseImage).Debug("pulling builder image")
-		pullRes, err := cli.ImagePull(ctx, builderBaseImage, types.ImagePullOptions{})
+	if _, _, err = cli.ImageInspectWithRaw(ctx, image); client.IsErrNotFound(err) {
+		logger.WithField("image", image).Debug("pulling builder image")
+		pullRes, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
 		if err != nil {
 			return err
 		}
@@ -111,7 +119,7 @@ func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	containerCfg := &container.Config{
 		Tty:   true,
 		Cmd:   []string{"/bin/sleep", strconv.Itoa(bp.timeout)},
-		Image: builderBaseImage,
+		Image: image,
 	}
 
 	hostCfg := &container.HostConfig{
