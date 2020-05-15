@@ -34,19 +34,21 @@ type KubernetesBuildProcessor struct {
 	namespace    string
 	timeout      int
 	proxy        string
+	image        string
 }
 
 // NewKubernetesBuildProcessor constructs a KubernetesBuildProcessor
 // starting from a kubernetes.Clientset. bufferSize represents the length of the
 // channel we use to do the builds. A bigger bufferSize will mean that we can save more Builds
 // for processing, however setting this to a big value will have impacts
-func NewKubernetesBuildProcessor(corev1Client v1.CoreV1Interface, clientConfig *restclient.Config, namespace string, timeout int, proxy string) *KubernetesBuildProcessor {
+func NewKubernetesBuildProcessor(corev1Client v1.CoreV1Interface, clientConfig *restclient.Config, namespace string, image string, timeout int, proxy string) *KubernetesBuildProcessor {
 	return &KubernetesBuildProcessor{
 		coreV1Client: corev1Client,
 		clientConfig: clientConfig,
 		namespace:    namespace,
 		timeout:      timeout,
 		proxy:        proxy,
+		image:        image,
 	}
 }
 
@@ -62,6 +64,10 @@ func (bp *KubernetesBuildProcessor) Start(b *builder.Build) error {
 func (bp *KubernetesBuildProcessor) buildModule(build *builder.Build) error {
 	deadline := int64(bp.timeout)
 	namespace := bp.namespace
+	if len(bp.image) == 0 {
+		bp.image = builderBaseImage
+	}
+	image := bp.image
 	uid := uuid.NewUUID()
 	name := fmt.Sprintf("driverkit-%s", string(uid))
 
@@ -157,7 +163,7 @@ func (bp *KubernetesBuildProcessor) buildModule(build *builder.Build) error {
 			Containers: []corev1.Container{
 				{
 					Name:            name,
-					Image:           builderBaseImage,
+					Image:           image,
 					Command:         buildCmd,
 					Env:             envs,
 					ImagePullPolicy: corev1.PullIfNotPresent,

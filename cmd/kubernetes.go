@@ -14,6 +14,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
+var Image string
+
 // NewKubernetesCmd creates the `driverkit kubernetes` command.
 func NewKubernetesCmd(rootOpts *RootOptions, rootFlags *pflag.FlagSet) *cobra.Command {
 	kubernetesCmd := &cobra.Command{
@@ -37,6 +39,7 @@ func NewKubernetesCmd(rootOpts *RootOptions, rootFlags *pflag.FlagSet) *cobra.Co
 	})
 	// Add root flags
 	kubernetesCmd.PersistentFlags().AddFlagSet(rootFlags)
+	kubernetesCmd.PersistentFlags().StringVarP(&Image, "image", "i", "", "image to use")
 
 	kubefactory := factory.NewFactory(configFlags)
 
@@ -64,6 +67,11 @@ func kubernetesRun(cmd *cobra.Command, args []string, kubefactory factory.Factor
 		namespaceStr = "default"
 	}
 
+	imageStr, err := f.GetString("image")
+	if err != nil {
+		return err
+	}
+
 	kc, err := kubefactory.KubernetesClientSet()
 	if err != nil {
 		return err
@@ -76,7 +84,7 @@ func kubernetesRun(cmd *cobra.Command, args []string, kubefactory factory.Factor
 		return err
 	}
 
-	buildProcessor := driverbuilder.NewKubernetesBuildProcessor(kc.CoreV1(), clientConfig, namespaceStr, viper.GetInt("timeout"), viper.GetString("proxy"))
+	buildProcessor := driverbuilder.NewKubernetesBuildProcessor(kc.CoreV1(), clientConfig, namespaceStr, imageStr, viper.GetInt("timeout"), viper.GetString("proxy"))
 
 	return buildProcessor.Start(b)
 }
