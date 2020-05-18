@@ -51,7 +51,9 @@ func (bp *DockerBuildProcessor) String() string {
 // Start the docker processor
 func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	logger.Debug("doing a new docker build")
+	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli.NegotiateAPIVersion(ctx)
 	if err != nil {
 		return err
 	}
@@ -100,7 +102,7 @@ func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	}
 
 	// Create the container
-	ctx := context.Background()
+	// ctx := context.Background()
 	ctx = signals.WithStandardSignals(ctx)
 
 	if _, _, err = cli.ImageInspectWithRaw(ctx, image); client.IsErrNotFound(err) {
