@@ -125,7 +125,8 @@ func (bp *DockerBuildProcessor) Start(b *builder.Build) error {
 	}
 
 	hostCfg := &container.HostConfig{
-		AutoRemove: true,
+		AutoRemove:  true,
+		NetworkMode: "host",
 	}
 	networkCfg := &network.NetworkingConfig{}
 	uid := uuid.NewUUID()
